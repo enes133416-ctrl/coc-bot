@@ -1,0 +1,246 @@
+# ==============================================================================
+# .github/workflows/setup_and_run.yml
+# ------------------------------------------------------------------------------
+# 🤖 CoC Bot Setup & Test - Otomatik Kurulum ve Test Workflow'u
+#
+# NE YAPAR?
+#   1. Kodu Windows ortamina indirir (checkout)
+#   2. Python 3.11 kurar
+#   3. Tum bagimliliklari pip ile kurar
+#   4. Tesseract OCR'i chocolatey ile kurar ve dogrular
+#   5. setup.py'yi calistirip proje yapisini hazirlar (klasorler, plan dosyasi)
+#   6. pytest ile tum testleri calistirir ve sonuclari artifact olarak yukler
+#   7. Ubuntu uzerinde flake8 ile kod stilini kontrol eder
+#
+# NASIL CALISTIRILIR?
+#   - GitHub'da Actions sekmesi -> "🤖 CoC Bot Setup & Test" -> "Run workflow"
+#   - veya: main branch'e push yapildiginda otomatik calisir
+#
+# MOD SECENEKLERI (workflow_dispatch):
+#   test  -> kurulum + test + lint (varsayilan, en kapsamli)
+#   setup -> sadece kurulum ve dogrulama
+#   lint  -> sadece kod stili kontrolu
+# ==============================================================================
+
+name: "🤖 CoC Bot Setup & Test"
+
+on:
+  # Actions sekmesinden elle calistirma
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "🎯 Calisma modu (test = kurulum + test + lint)"
+        required: true
+        default: "test"
+        type: choice
+        options:
+          - test
+          - setup
+          - lint
+      python_version:
+        description: "🐍 Python surumu"
+        required: true
+        default: "3.11"
+        type: string
+
+  # main branch'a push yapinca otomatik
+  push:
+    branches:
+      - main
+
+# Tum islerde varsayilan olarak hata halinde dur (continue-on-error: false)
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ============================================================================
+  # JOB 1: SETUP - Kurulum ve dogrulama (Windows)
+  # ============================================================================
+  setup:
+    name: "🛠️ 1. Kurulum (Windows + Tesseract + Python)"
+    runs-on: windows-latest
+    continue-on-error: false
+    if: ${{ github.event_name == 'push' || github.event.inputs.mode == 'setup' || github.event.inputs.mode == 'test' }}
+
+    steps:
+      - name: "📥 Kodu indir (checkout)"
+        uses: actions/checkout@v4
+
+      - name: "🐍 Python ${{ github.event.inputs.python_version || '3.11' }} kuruluyor"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ github.event.inputs.python_version || '3.11' }}
+          cache: "pip"
+
+      - name: "📦 Python bagimliliklari kuruluyor (pip install -r requirements.txt)"
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip list
+
+      - name: "🔤 Tesseract OCR kuruluyor (chocolatey)"
+        shell: pwsh
+        run: |
+          choco install tesseract --yes --no-progress
+          Write-Host "Chocolatey kurulumu tamamlandi."
+
+      - name: "✅ Tesseract surumu dogrulaniyor"
+        shell: pwsh
+        run: |
+          $tesseract = "C:\Program Files\Tesseract-OCR\tesseract.exe"
+          if (-not (Test-Path $tesseract)) {
+            $cmd = Get-Command tesseract -ErrorAction SilentlyContinue
+            if ($cmd) { $tesseract = $cmd.Source }
+          }
+          if (-not (Test-Path $tesseract)) {
+            Write-Host "::error::Tesseract bulunamadi! Kurulum basarisiz."
+            exit 1
+          }
+          & $tesseract --version
+          & $tesseract --list-langs
+          "TESSERACT_CMD=$tesseract" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Tesseract hazir: $tesseract"
+
+      - name: "🧪 Kurulum scripti calistiriliyor (python setup.py)"
+        shell: pwsh
+        run: |
+          python setup.py
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::setup.py basarisiz oldu (kod: $LASTEXITCODE)"
+            exit $LASTEXITCODE
+          }
+          Write-Host "setup.py tamamlandi."
+
+      - name: "📁 Klasor yapisi dogrulaniyor"
+        shell: pwsh
+        run: |
+          $klasorler = @("core", "modules", "ai", "data_collector", "tests", "assets\templates", "data\sessions", "data\errors")
+          foreach ($klasor in $klasorler) {
+            if (Test-Path $klasor) {
+              Write-Host "[OK]  $klasor"
+            } else {
+              Write-Host "::error::Eksik klasor: $klasor"
+              exit 1
+            }
+          }
+          if (Test-Path "data\battle_plans.json") {
+            Write-Host "[OK]  data\battle_plans.json"
+          } else {
+            Write-Host "::error::data\battle_plans.json bulunamadi!"
+            exit 1
+          }
+
+      - name: "🎉 Kurulum basarili mesaji"
+        run: |
+          echo "=============================================================="
+          echo " 🎉 KURULUM BASARIYLA TAMAMLANDI!"
+          echo "=============================================================="
+          echo " ✅ Python kuruldu"
+          echo " ✅ Bagimliliklar kuruldu"
+          echo " ✅ Tesseract OCR kuruldu ve dogrulandi"
+          echo " ✅ setup.py calistirildi"
+          echo " ✅ Klasor yapisi hazir"
+          echo " ➡️  Sirada: TEST JOB"
+          echo "=============================================================="
+
+  # ============================================================================
+  # JOB 2: TEST - pytest ile testler (Windows)
+  # ============================================================================
+  test:
+    name: "🧪 2. Testler (pytest)"
+    runs-on: windows-latest
+    needs: setup
+    continue-on-error: false
+
+    steps:
+      - name: "📥 Kodu indir (checkout)"
+        uses: actions/checkout@v4
+
+      - name: "🐍 Python ${{ github.event.inputs.python_version || '3.11' }} kuruluyor"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ github.event.inputs.python_version || '3.11' }}
+          cache: "pip"
+
+      - name: "📦 Bagimliliklar kuruluyor"
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pytest
+
+      - name: "🔤 Tesseract yeniden kuruluyor (test icin gerekli)"
+        shell: pwsh
+        run: |
+          choco install tesseract --yes --no-progress
+          $tesseract = "C:\Program Files\Tesseract-OCR\tesseract.exe"
+          if (Test-Path $tesseract) {
+            "TESSERACT_CMD=$tesseract" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            & $tesseract --version
+          } else {
+            Write-Host "::warning::Tesseract bulunamadi, OCR testleri atlanacak."
+          }
+
+      - name: "📁 Test sonuc klasoru hazirlaniyor"
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path test-results | Out-Null
+          Write-Host "[OK]  test-results klasoru hazir."
+
+      - name: "🧪 pytest tests/ -v --tb=short calistiriliyor"
+        run: |
+          python -m pytest tests/ -v --tb=short --junitxml=test-results/results.xml
+        continue-on-error: false
+
+      - name: "📊 Test sonuclari artifact olarak yukleniyor"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results-windows
+          path: |
+            test-results/
+            tests/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: "✅ Testler tamamlandi mesaji"
+        run: |
+          echo "=============================================================="
+          echo " ✅ TEST JOB TAMAMLANDI"
+          echo " Test sonuclari 'pytest-results-windows' artifact'inda."
+          echo "=============================================================="
+
+  # ============================================================================
+  # JOB 3: LINT - Kod stili kontrolu (Ubuntu)
+  # ============================================================================
+  lint:
+    name: "🔍 3. Kod stili kontrolu (flake8)"
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    if: ${{ github.event_name == 'push' || github.event.inputs.mode == 'lint' || github.event.inputs.mode == 'test' }}
+
+    steps:
+      - name: "📥 Kodu indir (checkout)"
+        uses: actions/checkout@v4
+
+      - name: "🐍 Python ${{ github.event.inputs.python_version || '3.11' }} kuruluyor"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ github.event.inputs.python_version || '3.11' }}
+          cache: "pip"
+
+      - name: "📦 flake8 kuruluyor"
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install flake8
+
+      - name: "🔍 Kod stili kontrol ediliyor (flake8 . --max-line-length=100 --exclude=.git)"
+        run: |
+          flake8 . --max-line-length=100 --exclude=.git
+        continue-on-error: false
+
+      - name: "✅ Kod stili temiz mesaji"
+        run: |
+          echo "=============================================================="
+          echo " ✅ FLAKE8 TEMIZ - Kod stili kurallara uygun!"
+          echo "=============================================================="
