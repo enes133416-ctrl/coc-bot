@@ -1,0 +1,88 @@
+# ==============================================================================
+# .gitignore - Clash of Clans Yerel AI Bot
+# ==============================================================================
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ---- Sanal ortamlar ----
+venv/
+.venv/
+env/
+ENV/
+.python-version
+
+# ---- Test / Coverage ----
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ---- IDE / Editor ----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# ---- Isletim sistemi ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Proje: Oturum verileri (her calistirmada olusur, commit edilmez) ----
+data/sessions/*/
+!data/sessions/.gitkeep
+data/screenshots/
+!data/screenshots/.gitkeep
+data/exports/
+data/backups/
+data/ocr_regions_calibrated.json
+
+# ---- Proje: Uretilen analiz/ozet dosyalari ----
+data/ai_export_summary.json
+data/ai_prompt.txt
+data/scout_history.json
+
+# ---- Proje: Hata kayitlari ----
+data/errors/*.json
+data/errors/*.png
+!data/errors/.gitkeep
+
+# ---- Proje: Debug gorselleri ----
+assets/debug/
+
+# ---- Proje: Gecici dosyalar ----
+*.tmp
+*.bak
+*.log
+!data/**/bot.log.sample
+pip-log.txt
+pip-delete-this-directory.txt
