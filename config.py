@@ -134,16 +134,27 @@ SCREEN_HEIGHT: int = 900
 AUTO_SCALE_REGIONS: bool = True    # farkli cozunurlukte bolgeleri otomatik olcekle
 
 # Her bolge: {"x": sol, "y": ust, "w": genislik, "h": yukseklik}
-# Bu degerler 1600x900 LDPlayer varsayilan penceresi icin hazirlandi.
-# Kendi ekranin icin:  python calibrate.py  ->  [1] OCR bolgelerini kalibre et
+#
+# DIKKAT: Rakip onizleme (scout) ekraninda loot paneli EKRANIN SOL UST kosesinde
+# D I K E Y   olarak dizilir:  altin / iksir / kara iksir (3 satir, ikonlar solda).
+# Asagidaki degerler o duzene gore, 1600x900 referans cozunurlugu icin ayarlanmistir.
+#
+#   +--- sol ust kose ---
+#   |  [icon] 493 564    <- gold    (y ~ 104)
+#   |  [icon] 1 017 336  <- elixir  (y ~ 148)
+#   |  [icon] 3 190      <- dark    (y ~ 192)
+#
+# Farkli cozunurluklerde AUTO_SCALE_REGIONS otomatik olceklendirir, ancak en
+# dogru sonuc icin:   python calibrate.py  ->  [1] OCR bolgelerini kalibre et
 OCR_REGIONS: Dict[str, Dict[str, int]] = {
-    "gold": {"x": 56, "y": 38, "w": 220, "h": 44},
-    "elixir": {"x": 300, "y": 38, "w": 220, "h": 44},
-    "dark": {"x": 544, "y": 38, "w": 200, "h": 44},
-    "total": {"x": 56, "y": 92, "w": 400, "h": 42},
-    "stars": {"x": 700, "y": 36, "w": 180, "h": 42},
-    "percentage": {"x": 900, "y": 36, "w": 180, "h": 42},
-    "timer": {"x": 1240, "y": 36, "w": 200, "h": 42},
+    "gold": {"x": 58, "y": 104, "w": 200, "h": 40},
+    "elixir": {"x": 58, "y": 148, "w": 200, "h": 40},
+    "dark": {"x": 58, "y": 192, "w": 200, "h": 40},
+    # Savas icinde okunan alanlar (istege bagli)
+    "total": {"x": 58, "y": 236, "w": 240, "h": 40},
+    "stars": {"x": 620, "y": 30, "w": 180, "h": 42},
+    "percentage": {"x": 860, "y": 30, "w": 180, "h": 42},
+    "timer": {"x": 1240, "y": 30, "w": 200, "h": 42},
 }
 
 # ==============================================================================

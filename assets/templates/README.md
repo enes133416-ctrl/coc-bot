@@ -8,6 +8,37 @@ Bot çalışmaya başladığında aşağıdaki butonları arar. Bu görseller yo
 
 ---
 
+## ⚡ HIZLI YOL: Otomatik Kesme Aracı
+
+Elle Paint ile kesmek yerine, ekran görüntülerinizden **tek komutla** buton kesin:
+
+```bash
+# 1. Durum: hangi template eksik?
+python scripts/crop_templates.py --list
+
+# 2. Otomatik kesme (ekran görüntülerinizin olduğu klasörü verin)
+python scripts/crop_templates.py --auto --shots "C:\Users\Sen\Pictures"
+
+# 3. Eksik kalanları fare ile kendiniz kesin (örn. savaş sonu "Ana Köye Dön")
+python scripts/crop_templates.py --interactive "C:\resimler\savas_sonu.jpg"
+
+# 4. Doğrula
+python scripts/crop_templates.py --verify "C:\resimler\ana_ekran.jpg"
+```
+
+Araç ne yapar:
+- Buton konumlarını **ekranın yüzdesi** olarak bildiği için her çözünürlükte çalışır
+- Kestiği her template'i **başka bir ekran görüntüsünde** test edip güven puanı verir
+- `assets/debug/template_preview.png` dosyasına yan yana önizleme montajı üretir
+
+İnteraktif modda: fare ile kutuyu çiz → ENTER → otomatik PNG olarak kaydedilir.
+
+---
+
+## 📖 Elle Kesme (Alternatif)
+
+---
+
 ## 📋 Gerekli Template Dosyaları
 
 | Dosya Adı | Ne İşe Yarar | Nereden Alınır |
